@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Árbol Genealógico - Tau Prolog</title>
+  <script src="./tau-prolog.js"></script>
+  <style>
+    /* ===== Estilos ===== */
+/* General reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Contenedor centrado con fondo */
+  body {
+    font-family: Arial, sans-serif;
+    background: #f3f3f3;
+  }
+  
+  /* Contenedor principal */
+  .container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+  
+  /* Título */
+  h1 {
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  /* Grupo de input y botón */
+  .input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* El input de la consulta */
+  #query {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  /* El botón de consultar */
+  button {
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    background: #0275d8;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+  }
+  button:hover {
+    background: #025aa5;
+  }
+  
+  /* Área de resultados */
+  .result {
+    min-height: 100px;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    background: #fafafa;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+  }  
+  </style>
+</head>
+<body>
+  <h1>Consultas al Árbol Genealógico</h1>
+  
+  <!-- Campo y botón para la consulta Prolog -->
+  <input type="text" id="query" value="abuelo(Esteban, X).">
+  <button onclick="hacerConsulta()">Consultar</button>
+  
+  <!-- Div para mostrar resultados -->
+  <div id="resultado" class="result"></div>
+
+  <!-- 1) Cargar la librería Tau-Prolog desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/tau-prolog@0.3.3/tau-prolog.js"></script>
+  <!-- 2) Script con la base de conocimientos y la lógica de consultas -->
+  <script>
+    // Crear la sesión Prolog
+    const session = pl.create();
+
+    // ====  BASE DE CONOCIMIENTOS  ====
+    const program = `
+    % =========================
+    %     HECHOS
+    % =========================
+
+    % Abuelos paternos
+    padre(Esteban, juan).
+    madre(Timotea, juan).
+
+    % Abuelos maternos
+    padre(Roberto, sonia).
+    madre(Cecilia, sonia).
+
+    % Padres
+    padre(juan, astrid).
+    padre(juan, lesly).
+    padre(juan, sheny).
+    padre(juan, brenda).
+
+    madre(sonia, astrid).
+    madre(sonia, lesly).
+    madre(sonia, sheny).
+    madre(sonia, brenda).
+
+    % Género (opcionales, para reglas tipo tia/2)
+    hombre(Esteban).
+    hombre(Roberto).
+    hombre(juan).
+
+    mujer(Timotea).
+    mujer(Cecilia).
+    mujer(sonia).
+
+    mujer(astrid).
+    mujer(lesly).
+    mujer(sheny).
+    mujer(brenda).
+
+    % =========================
+    %     REGLAS
+    % =========================
+
+    % 1) hermano/2
+    % X es hermano de Y si tienen mismo padre, misma madre y X no es Y.
+    hermano(X, Y) :-
+        padre(P, X), padre(P, Y),
+        madre(M, X), madre(M, Y),
+        X \= Y.
+
+    % 2) abuelo/2 (con corte para evitar resultados repetidos)
+    % X es abuelo de Y si es padre de alguien que sea padre o madre de Y.
+    % Una vez encuentre una forma de ser abuelo, deja de buscar más.
+    abuelo(X, Y) :-
+        padre(X, Z),
+        ( padre(Z, Y) ; madre(Z, Y) ), 
+        !.
+
+    % 3) abuela/2 (también con corte)
+    % X es abuela de Y si es madre de alguien que sea padre o madre de Y.
+    abuela(X, Y) :-
+        madre(X, Z),
+        ( padre(Z, Y) ; madre(Z, Y) ), 
+        !.
+
+    % 4) tia/2 (opcional, sin corte)
+    % X es tía de Y si X es mujer y hermana de uno de los padres de Y.
+    tia(X, Y) :-
+        mujer(X),
+        ( padre(P, Y) ; madre(P, Y) ),
+        hermano(X, P).
+
+    `;
+
+    // 3) Cargar nuestro programa en la sesión
+    session.consult(program, {
+      success: function() {
+        console.log("Programa Prolog cargado con éxito.");
+      },
+      error: function(err) {
+        document.getElementById("resultado").innerText =
+          "Error al cargar el programa: " + err;
+      }
+    });
+
+    // 4) Función para realizar la consulta y mostrar respuestas
+    function hacerConsulta() {
+      const consulta = document.getElementById("query").value.trim();
+      const salida = document.getElementById("resultado");
+      salida.innerHTML = ""; // Limpia resultados previos
+
+      session.query(consulta, {
+        success: function() {
+          // Obtener todas las respuestas
+          session.answers((answer) => {
+            if (answer === false) {
+              salida.innerHTML += "No hay más respuestas.<br>";
+              return;
+            }
+            // Convierte el objeto de enlaces a texto
+            salida.innerHTML += JSON.stringify(answer.links) + "<br>";
+          });
+        },
+        fail: function() {
+          salida.innerHTML = "No se encontró ninguna solución.";
+        },
+        error: function(err) {
+          salida.innerText = "Error en la consulta: " + err;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

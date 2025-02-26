@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Árbol Genealógico - Tau Prolog</title>
+  <style>
+    /* ===== Estilos opcionales ===== */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Consultas al Árbol Genealógico</h1>
+  
+  <!-- Campo para la consulta Prolog -->
+  <input type="text" id="query" placeholder="Ej: abuelo(juan, X).">
+  <button onclick="hacerConsulta()">Consultar</button>
+  
+  <!-- Área para mostrar resultados -->
+  <div id="resultado" class="result"></div>
+
+  <!-- Cargar la librería de Tau-Prolog (ruta o CDN) -->
+  <script src="./tau-prolog-master/taupl.js"></script>
+
+
+  <script>
+    // 1) Creamos una sesión Prolog
+    const session = pl.create();
+
+    // 2) Definimos nuestra base de conocimiento (hechos + reglas)
+    const program = `
+    % -----------------------------------------
+    %   HECHOS: Parentescos directos (padres)
+    % -----------------------------------------
+    % Abuelos de parte de papá
+    padre(Esteban, juan).    % Esteban es padre de Juan
+    madre(Timotea, juan).    % Timotea es madre de Juan
+
+    % Abuelos de parte de mamá
+    padre(Roberto, sonia).   % Roberto es padre de Sonia
+    madre(Cecilia, sonia).   % Cecilia es madre de Sonia
+
+    % Padres de las hermanas
+    padre(juan, astrid).
+    padre(juan, lesly).
+    padre(juan, sheny).
+    padre(juan, brenda).
+
+    madre(sonia, astrid).
+    madre(sonia, lesly).
+    madre(sonia, sheny).
+    madre(sonia, brenda).
+
+    % -----------------------------------------
+    %   HECHOS: Género
+    % -----------------------------------------
+    hombre(Esteban).
+    hombre(Roberto).
+    hombre(juan).
+
+    mujer(Timotea).
+    mujer(Cecilia).
+    mujer(sonia).
+
+    mujer(astrid).
+    mujer(lesly).
+    mujer(sheny).
+    mujer(brenda).
+
+    % -----------------------------------------
+    %   REGLAS BÁSICAS
+    % -----------------------------------------
+
+    % 1) hermano(X, Y):
+    %    X es hermano de Y si tienen el mismo padre y la misma madre, y X no es Y.
+    hermano(X, Y) :-
+        padre(P, X), padre(P, Y),
+        madre(M, X), madre(M, Y),
+        X \= Y.
+
+    % 2) abuelo(X, Y):
+    %    X es abuelo de Y si X es padre de Z y Z es padre o madre de Y.
+    abuelo(X, Y) :-
+        padre(X, Z),
+        ( padre(Z, Y) ; madre(Z, Y) ).
+
+    % 3) abuela(X, Y):
+    %    X es abuela de Y si X es madre de Z y Z es padre o madre de Y.
+    abuela(X, Y) :-
+        madre(X, Z),
+        ( padre(Z, Y) ; madre(Z, Y) ).
+
+    % (Opcional) 4) tia(X, Y):
+    %    X es tía de Y si X es mujer y hermana de uno de los padres de Y.
+    tia(X, Y) :-
+        mujer(X),
+        ( padre(P, Y) ; madre(P, Y) ),
+        hermano(X, P).
+
+    `;
+
+    // 3) Consultamos el programa para cargarlo
+    session.consult(program, {
+      success: function() {
+        console.log("Programa cargado exitosamente en la sesión Tau-Prolog.");
+      },
+      error: function(err) {
+        document.getElementById("resultado").innerText = "Error al cargar el programa: " + err;
+      }
+    });
+
+    // Función para realizar la consulta escrita por el usuario
+    function hacerConsulta() {
+      const consulta = document.getElementById("query").value.trim();
+      const resultadoDiv = document.getElementById("resultado");
+      resultadoDiv.innerHTML = ""; // Limpiar resultados previos
+
+      // Consultar la sesión con el texto que el usuario escribió
+      session.query(consulta, {
+        success: function(goal) {
+          // Obtener respuestas sucesivamente usando 'answers'
+          session.answers(x => {
+            if (x === false) {
+              // No más respuestas
+              return;
+            } else {
+              resultadoDiv.innerHTML += JSON.stringify(x.links) + "<br>";
+            }
+          });
+        },
+        error: function(err) {
+          resultadoDiv.innerText = "Error en la consulta: " + err;
+        }
+      });
+    }
+  </script>
+</body>
+</html>
