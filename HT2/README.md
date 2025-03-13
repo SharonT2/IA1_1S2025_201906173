@@ -1,7 +1,5 @@
-![alt text](im1.png)
+![alt text](im1.jpeg)
 
-
-![alt text](image.png)
 
 
 ![alt text](image-2.png)
