@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Filtro FaceTracking con MindAR</title>
+    <!-- A-Frame -->
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.4.2/dist/aframe/aframe.min.js"></script>
+    <!-- MindAR Face Tracking -->
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.4.2/dist/face-target/mindar-face-aframe.prod.js"></script>
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <a-scene
+        mindar-face        <!-- Activamos Face Tracking -->
+        embedded
+        color-space="sRGB"
+        renderer="precision: mediump; antialias: true; alpha: true;"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+      >
+        <!-- Cámara de MindAR para Face Tracking -->
+        <a-entity mindar-face-camera="active: true"></a-entity>
+
+        <!-- ANCLA de la cara -->
+        <a-entity mindar-face-anchor>
+          <!-- En este ejemplo: un plane con la imagen 2D -->
+          <a-plane
+            src="#filtro2D"
+            position="0 0 0"
+            rotation="0 0 0"
+            width="1"
+            height="1"
+          ></a-plane>
+        </a-entity>
+
+        <!-- Assets de A-Frame -->
+        <a-assets>
+          <!-- Imagen para el filtro -->
+          <img id="filtro2D" src="assets/img1.png" />
+        </a-assets>
+      </a-scene>
+    </div>
+  </body>
+</html>
