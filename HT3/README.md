@@ -4,5 +4,5 @@
 ## Imagen a utilizar
 ![alt text](image-1.png)
 
-## Filtro aplicado
+## Filtro aplicado en codigo 
 ![alt text](image-2.png)
